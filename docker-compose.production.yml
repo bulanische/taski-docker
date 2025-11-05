@@ -1,0 +1,45 @@
+# Файл docker-compose.yml
+# Перечень volume
+volumes:
+  pg_data_production:
+  # Новый volume для статики
+  static_volume:
+
+# Перечень контейнеров
+services:
+  # Имя и описание первого контейнера; имя выбирает разработчик. 
+  # Это контейнер БД
+  db:
+    # Из какого образа запустить контейнер:
+    image: postgres:13.10
+    # Файл (или список файлов) с переменными окружения
+    env_file: .env
+    # Какой volume подключить для этого контейнера
+    volumes:
+      - pg_data_production:/var/lib/postgresql/data
+  # Имя и описание контейнера с бэкендом
+  backend:
+    # Из какого Dockerfile собирать образ для этого контейнера:
+    image: bulanische/taski_backend
+    env_file: .env
+    # Какие контейнеры нужно запустить до старта этого контейнера:
+    volumes:
+      - static_volume:/backend_static
+  # Имя третьего контейнера. Это контейнер с фронтендом
+  frontend:
+    env_file: .env
+    image: bulanische/taski_frontend
+    command: cp -r /app/build/. /frontend_static/
+    volumes:
+      - static_volume:/frontend_static
+  gateway:
+    # Сбилдить и запустить образ, 
+    # описанный в Dockerfile в папке gateway
+    image: bulanische/taski_gateway
+    # Ключ ports устанавливает
+    # перенаправление всех запросов с порта 8000 хоста
+    # на порт 80 контейнера
+    ports:
+      - 8000:80
+    volumes:
+      - static_volume:/staticfiles
